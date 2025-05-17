@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:fe_sisfo_sarpas/widgets/navbar.dart'; // arahkan ke MainNavigation
+import 'package:fe_sisfo_sarpas/widgets/navbar.dart'; // Halaman utama setelah login
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -27,39 +26,46 @@ class _LoginPageState extends State<LoginPage> {
       url,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'email': _emailController.text,
-        'password': _passwordController.text,
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text.trim(),
       }),
     );
+
+    setState(() {
+      _isLoading = false;
+    });
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final token = data['access_token'];
-      final name = data['user']['name'];
-      final email = data['user']['email'];
+      final user = data['user'];
+      final name = user['name'];
+      final email = user['email'];
+      final idUser = user['id'];
 
-      // Simpan ke SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', token);
       await prefs.setString('name', name);
       await prefs.setString('email', email);
+      await prefs.setInt('id_user', idUser); // ✅ penting!
 
-      // Arahkan ke MainNavigation setelah login
+      // Debugging
+      print('✅ Login berhasil');
+      print('🔐 Token: $token');
+      print('👤 ID User: $idUser');
+
+      // Arahkan ke halaman utama
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainNavigation()),
       );
     } else {
       final data = jsonDecode(response.body);
-      print('Login gagal: ${data['message']}');
+      print('❌ Login gagal: ${data['message']}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login gagal: ${data['message']}')),
       );
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
@@ -73,17 +79,13 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-              ),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-              ),
+              decoration: const InputDecoration(labelText: 'Password'),
             ),
             const SizedBox(height: 32),
             _isLoading

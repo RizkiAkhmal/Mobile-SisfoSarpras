@@ -1,9 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:fe_sisfo_sarpas/pages/home.dart';
 import 'package:fe_sisfo_sarpas/pages/peminjaman.dart';
+import 'package:fe_sisfo_sarpas/pages/history.dart';
 import 'package:fe_sisfo_sarpas/pages/profile.dart';
-import 'package:flutter/material.dart';
-
-
+import 'package:fe_sisfo_sarpas/pages/pengembalian.dart'; // ✅ Tambahkan ini
 
 void main() {
   runApp(MyApp());
@@ -32,7 +32,9 @@ class _MainNavigationState extends State<MainNavigation> {
 
   static final List<Widget> _pages = <Widget>[
     HomePage(),
-    PeminjamanFormPage(),
+    PeminjamanForm(),
+    PeminjamanHistoryPage(),
+    PengembalianForm(), 
     ProfilePage(),
   ];
 
@@ -47,6 +49,7 @@ class _MainNavigationState extends State<MainNavigation> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -54,7 +57,15 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment),
-            label: 'Peminjaman',
+            label: 'Pinjam',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Riwayat',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_return),
+            label: 'Kembali', // ✅ Label Pengembalian
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
