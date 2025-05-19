@@ -18,11 +18,9 @@ class _PengembalianFormState extends State<PengembalianForm> {
   final _tglKembaliController = TextEditingController();
   final _jumlahKembaliController = TextEditingController();
   final _kondisiController = TextEditingController();
-  final _biayaDendaController = TextEditingController();
-  String _selectedStatus = 'complete';
+  String _selectedStatus = 'pending';
 
   final List<String> _kondisiOptions = ['Baik', 'Rusak', 'Hilang'];
-  final List<String> _statusOptions = ['complete', 'damage', 'pending'];
 
   final _dateFormat = DateFormat('yyyy-MM-dd');
   List<Peminjaman> _listPeminjaman = [];
@@ -42,13 +40,13 @@ class _PengembalianFormState extends State<PengembalianForm> {
       _loading = true;
       _errorMessage = null;
     });
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
-      
+
       final peminjamans = await PengembalianService.fetchPeminjamanForReturn(token);
-      
+
       setState(() {
         _listPeminjaman = peminjamans;
         _loading = false;
@@ -79,7 +77,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    
+
     if (picked != null) {
       setState(() {
         _tglKembaliController.text = _dateFormat.format(picked);
@@ -104,7 +102,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
-      
+
       final success = await PengembalianService.createPengembalian(
         token: token,
         idPeminjaman: _selectedPeminjaman!.id!,
@@ -113,7 +111,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
         jumlahKembali: int.parse(_jumlahKembaliController.text),
         kondisi: _kondisiController.text,
         status: _selectedStatus,
-        biayaDenda: double.tryParse(_biayaDendaController.text),
+        biayaDenda: null, // Dihilangkan dari input form
       );
 
       setState(() {
@@ -123,7 +121,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
       if (success) {
         _showSnackBar('Pengembalian berhasil disimpan');
         _resetForm();
-        _loadData(); // Refresh the list
+        _loadData();
       } else {
         _showSnackBar('Gagal mengirim pengembalian', isError: true);
       }
@@ -145,8 +143,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
     _tglKembaliController.text = _dateFormat.format(DateTime.now());
     _jumlahKembaliController.clear();
     _kondisiController.clear();
-    _biayaDendaController.clear();
-    _selectedStatus = 'complete';
+    _selectedStatus = 'pending';
   }
 
   @override
@@ -233,10 +230,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
           children: [
             Text(
               'Detail Peminjaman',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             DropdownButtonFormField<Peminjaman>(
@@ -258,12 +252,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
                   _updateJumlahKembali();
                 });
               },
-              validator: (value) {
-                if (value == null) {
-                  return 'Peminjaman harus dipilih';
-                }
-                return null;
-              },
+              validator: (value) => value == null ? 'Peminjaman harus dipilih' : null,
               isExpanded: true,
             ),
             if (_selectedPeminjaman != null) ...[
@@ -289,6 +278,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
           _buildDetailRow('Nama Barang', _selectedPeminjaman!.namaBarang ?? '-'),
           _buildDetailRow('Jumlah Dipinjam', '${_selectedPeminjaman!.jumlah}'),
           _buildDetailRow('Tanggal Pinjam', _selectedPeminjaman!.tglPinjam ?? '-'),
+          _buildDetailRow('Tanggal Kembali', _tglKembaliController.text),
           _buildDetailRow('Alasan Peminjaman', _selectedPeminjaman!.alasanPinjam ?? '-'),
         ],
       ),
@@ -301,13 +291,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+          SizedBox(width: 120, child: Text(label, style: TextStyle(fontWeight: FontWeight.bold))),
           Expanded(child: Text(value)),
         ],
       ),
@@ -325,10 +309,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
           children: [
             Text(
               'Detail Pengembalian',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             TextFormField(
@@ -337,12 +318,8 @@ class _PengembalianFormState extends State<PengembalianForm> {
                 labelText: 'Nama Pengembali',
                 border: OutlineInputBorder(),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Nama pengembali harus diisi';
-                }
-                return null;
-              },
+              validator: (value) =>
+                  value == null || value.trim().isEmpty ? 'Nama pengembali harus diisi' : null,
             ),
             SizedBox(height: 16),
             TextFormField(
@@ -354,12 +331,8 @@ class _PengembalianFormState extends State<PengembalianForm> {
                 suffixIcon: Icon(Icons.calendar_today),
               ),
               onTap: () => _selectDate(context),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Tanggal kembali harus diisi';
-                }
-                return null;
-              },
+              validator: (value) =>
+                  value == null || value.isEmpty ? 'Tanggal kembali harus diisi' : null,
             ),
             SizedBox(height: 16),
             TextFormField(
@@ -370,16 +343,10 @@ class _PengembalianFormState extends State<PengembalianForm> {
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Jumlah kembali harus diisi';
-                }
+                if (value == null || value.isEmpty) return 'Jumlah kembali harus diisi';
                 final jumlah = int.tryParse(value);
-                if (jumlah == null) {
-                  return 'Jumlah harus berupa angka';
-                }
-                if (jumlah <= 0) {
-                  return 'Jumlah harus lebih dari 0';
-                }
+                if (jumlah == null) return 'Jumlah harus berupa angka';
+                if (jumlah <= 0) return 'Jumlah harus lebih dari 0';
                 if (_selectedPeminjaman != null && jumlah > (_selectedPeminjaman!.jumlah ?? 0)) {
                   return 'Jumlah kembali tidak boleh melebihi jumlah pinjam';
                 }
@@ -392,8 +359,8 @@ class _PengembalianFormState extends State<PengembalianForm> {
                 labelText: 'Kondisi',
                 border: OutlineInputBorder(),
               ),
-              value: _kondisiOptions.contains(_kondisiController.text) 
-                  ? _kondisiController.text 
+              value: _kondisiOptions.contains(_kondisiController.text)
+                  ? _kondisiController.text
                   : null,
               items: _kondisiOptions.map((String kondisi) {
                 return DropdownMenuItem<String>(
@@ -405,84 +372,11 @@ class _PengembalianFormState extends State<PengembalianForm> {
                 if (value != null) {
                   setState(() {
                     _kondisiController.text = value;
-                    
-                    // Auto-select status based on kondisi
-                    if (value == 'Baik') {
-                      _selectedStatus = 'complete';
-                    } else if (value == 'Rusak') {
-                      _selectedStatus = 'damage';
-                    } else if (value == 'Hilang') {
-                      _selectedStatus = 'damage';
-                    }
                   });
                 }
               },
-              validator: (value) {
-                if (_kondisiController.text.isEmpty) {
-                  return 'Kondisi harus dipilih';
-                }
-                return null;
-              },
-            ),
-            SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Status Pengembalian',
-                border: OutlineInputBorder(),
-                helperText: 'Status pengembalian barang',
-              ),
-              value: _selectedStatus,
-              items: _statusOptions.map((String status) {
-                String label;
-                switch (status) {
-                  case 'complete':
-                    label = 'Lengkap (Complete)';
-                    break;
-                  case 'damage':
-                    label = 'Rusak (Damage)';
-                    break;
-                  case 'pending':
-                    label = 'Tertunda (Pending)';
-                    break;
-                  default:
-                    label = status;
-                }
-                
-                return DropdownMenuItem<String>(
-                  value: status,
-                  child: Text(label),
-                );
-              }).toList(),
-              onChanged: (String? value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedStatus = value;
-                  });
-                }
-              },
-            ),
-            SizedBox(height: 16),
-            TextFormField(
-              controller: _biayaDendaController,
-              decoration: InputDecoration(
-                labelText: 'Biaya Denda (opsional)',
-                border: OutlineInputBorder(),
-                helperText: 'Kosongkan jika tidak ada denda',
-                prefixText: 'Rp ',
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final denda = double.tryParse(value);
-                  if (denda == null) {
-                    return 'Biaya denda harus berupa angka';
-                  }
-                  if (denda < 0) {
-                    return 'Biaya denda tidak boleh negatif';
-                  }
-                }
-                return null;
-              },
+              validator: (_) =>
+                  _kondisiController.text.isEmpty ? 'Kondisi harus dipilih' : null,
             ),
           ],
         ),
@@ -512,7 +406,6 @@ class _PengembalianFormState extends State<PengembalianForm> {
     _tglKembaliController.dispose();
     _jumlahKembaliController.dispose();
     _kondisiController.dispose();
-    _biayaDendaController.dispose();
     super.dispose();
   }
-} 
+}

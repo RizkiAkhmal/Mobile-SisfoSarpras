@@ -82,6 +82,14 @@ class PengembalianService {
         // Filter only peminjaman with status "approved"
         final List filteredData = data.where((item) => item['status'] == 'approved').toList();
         
+        // Process each item to ensure barang data is properly handled
+        for (var item in filteredData) {
+          if (item['barang'] == null || item['barang']['nama_barang'] == null) {
+            // If barang data is missing, add a placeholder
+            item['barang'] = {'nama_barang': 'Barang tidak diketahui'};
+          }
+        }
+        
         return filteredData.map((json) => Peminjaman.fromJson(json)).toList();
       } else {
         throw Exception('Gagal mengambil data peminjaman: ${response.statusCode}');

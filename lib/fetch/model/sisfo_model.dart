@@ -21,7 +21,7 @@ class Barang {
       namaBarang: json['nama_barang'],
       jumlahBarang: json['jumlah_barang'],
       idKategori: json['id_kategori'],
-      foto: json['foto'], // Ambil dari JSON
+      foto: json['foto'].toString(), // Ambil dari JSON
       kategori: Kategori.fromJson(json['kategori']),
     );
   }

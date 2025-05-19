@@ -22,6 +22,22 @@ class Peminjaman {
   });
 
   factory Peminjaman.fromJson(Map<String, dynamic> json) {
+    String? itemName;
+    
+    // Try to extract nama_barang from different possible structures
+    if (json['barang'] != null && json['barang'] is Map) {
+      itemName = json['barang']['nama_barang'];
+    } else if (json['nama_barang'] != null) {
+      itemName = json['nama_barang'];
+    } else if (json['barang_nama'] != null) {
+      itemName = json['barang_nama'];
+    }
+    
+    // If still null, use default value
+    if (itemName == null || itemName.isEmpty) {
+      itemName = 'Barang tidak diketahui';
+    }
+    
     return Peminjaman(
       id: int.tryParse(json['id'].toString()),
       idUser: int.tryParse(json['id_user'].toString()),
@@ -31,7 +47,7 @@ class Peminjaman {
       tglPinjam: json['tgl_pinjam'],
       tglKembali: json['tgl_kembali'],
       status: json['status'],
-      namaBarang: json['barang']?['nama_barang'] ?? 'Barang tidak diketahui'
+      namaBarang: itemName
     );
   }
 
