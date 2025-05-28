@@ -3,7 +3,7 @@ import 'package:fe_sisfo_sarpas/pages/home.dart';
 import 'package:fe_sisfo_sarpas/pages/peminjaman.dart';
 import 'package:fe_sisfo_sarpas/pages/history.dart';
 import 'package:fe_sisfo_sarpas/pages/profile.dart';
-import 'package:fe_sisfo_sarpas/pages/pengembalian.dart'; // ✅ Tambahkan ini
+import 'package:fe_sisfo_sarpas/pages/pengembalian.dart';
 
 void main() {
   runApp(MyApp());
@@ -30,11 +30,11 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
-  static final List<Widget> _pages = <Widget>[
+  final List<Widget> _pages = [
     HomePage(),
     PeminjamanForm(),
     PeminjamanHistoryPage(),
-    PengembalianForm(), 
+    PengembalianForm(),
     ProfilePage(),
   ];
 
@@ -48,33 +48,76 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
+      bottomNavigationBar: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            selectedItemColor: Colors.black,
+            unselectedItemColor: Colors.black54,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.assignment),
+                label: 'Pinjam',
+              ),
+              BottomNavigationBarItem(
+                icon: SizedBox.shrink(), // kosong karena diganti custom
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.assignment_return),
+                label: 'Kembali',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Akun',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Pinjam',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Riwayat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_return),
-            label: 'Kembali', // ✅ Label Pengembalian
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
+          Positioned(
+            top: -25, // Reduced from -30 to -25 to make it smaller
+            child: GestureDetector(
+              onTap: () => _onItemTapped(2),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10), // Reduced from 12 to 10
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _selectedIndex == 2 ? Colors.blue : Colors.grey,
+                        width: 2,
+                      ),
+                      color: Colors.white,
+                    ),
+                    child: Icon(
+                      Icons.access_time,
+                      size: 24, // Reduced from 30 to 24
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Riwayat',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _selectedIndex == 2 ? Colors.black : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        onTap: _onItemTapped,
       ),
     );
   }

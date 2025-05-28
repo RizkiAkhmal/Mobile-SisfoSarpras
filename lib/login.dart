@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fe_sisfo_sarpas/widgets/navbar.dart'; // Halaman utama setelah login
+import 'package:fe_sisfo_sarpas/widgets/navbar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,29 +39,18 @@ class _LoginPageState extends State<LoginPage> {
       final data = jsonDecode(response.body);
       final token = data['access_token'];
       final user = data['user'];
-      final name = user['name'];
-      final email = user['email'];
-      final idUser = user['id'];
-
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', token);
-      await prefs.setString('name', name);
-      await prefs.setString('email', email);
-      await prefs.setInt('id_user', idUser); // ✅ penting!
+      await prefs.setInt('id_user', user['id']);
+      await prefs.setString('name', user['name']);
+      await prefs.setString('email', user['email']);
 
-      // Debugging
-      print('✅ Login berhasil');
-      print('🔐 Token: $token');
-      print('👤 ID User: $idUser');
-
-      // Arahkan ke halaman utama
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainNavigation()),
       );
     } else {
       final data = jsonDecode(response.body);
-      print('❌ Login gagal: ${data['message']}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login gagal: ${data['message']}')),
       );
@@ -71,56 +60,80 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[200],
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
+            colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue.shade200,
-              Colors.blue.shade50,
-            ],
           ),
         ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const Text(
+                    'Sistem Informasi',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                  const Text(
+                    'Sarana Prasarana',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        )
+                      ],
+                    ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.account_circle,
-                          size: 80,
-                          color: Colors.blue,
+                        const CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.blue,
+                          child: Icon(Icons.person, size: 50, color: Colors.white),
                         ),
                         const SizedBox(height: 16),
                         const Text(
-                          'Sisfo Sarpas',
+                          'Login',
                           style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         TextField(
                           controller: _emailController,
                           decoration: InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: const Icon(Icons.email),
+                            hintText: 'Isi Email',
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            filled: true,
+                            fillColor: Colors.grey[100],
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
                             ),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -128,16 +141,28 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: const Icon(Icons.lock),
+                            hintText: 'Isi Password',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            filled: true,
+                            fillColor: Colors.grey[100],
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
                             ),
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {},
+                            child: const Text(
+                              'Lupa Password?',
+                              style: TextStyle(fontSize: 12, color: Colors.blue),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           height: 50,
@@ -146,10 +171,9 @@ class _LoginPageState extends State<LoginPage> {
                               : ElevatedButton(
                                   onPressed: _login,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: Colors.blue[700],
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(30),
                                     ),
                                   ),
                                   child: const Text(
@@ -157,6 +181,7 @@ class _LoginPageState extends State<LoginPage> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ),
@@ -164,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
