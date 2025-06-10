@@ -22,6 +22,19 @@ class _PengembalianFormState extends State<PengembalianForm> {
 
   final List<String> _kondisiOptions = ['baik', 'rusak', 'hilang'];
 
+  // Add a method to validate the selected condition
+  bool _validateKondisi(String kondisi) {
+    // Add special validation for 'hilang' condition
+    if (kondisi == 'hilang') {
+      // Show error message when 'hilang' is selected
+      _showSnackBar('Kondisi "hilang" tidak dapat dipilih saat ini', isError: true);
+      // Reset to default condition
+      _kondisiController.text = 'baik';
+      return false;
+    }
+    return true;
+  }
+
   final _dateFormat = DateFormat('yyyy-MM-dd');
   List<Peminjaman> _listPeminjaman = [];
   Peminjaman? _selectedPeminjaman;
@@ -193,30 +206,32 @@ class _PengembalianFormState extends State<PengembalianForm> {
           ? Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? _buildErrorView()
-              : Container(
-                  color: Colors.grey[100],
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'FORM PENGEMBALIAN',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                            letterSpacing: 1.2,
-                          ),
+              : _listPeminjaman.isEmpty
+                  ? _buildNoItemsView()
+                  : Container(
+                      color: Colors.grey[100],
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              'FORM PENGEMBALIAN',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            _buildFormIcon(),
+                            SizedBox(height: 16),
+                            _buildFormCard(),
+                          ],
                         ),
-                        SizedBox(height: 20),
-                        _buildFormIcon(),
-                        SizedBox(height: 16),
-                        _buildFormCard(),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
     );
   }
 
@@ -322,6 +337,8 @@ class _PengembalianFormState extends State<PengembalianForm> {
                       label: 'Jumlah Kembali',
                       icon: Icons.numbers_outlined,
                       keyboardType: TextInputType.number,
+                      readOnly: true,
+                      enabled: false,
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Jumlah kembali harus diisi';
                         final jumlah = int.tryParse(value);
@@ -470,6 +487,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     bool readOnly = false,
+    bool enabled = true,
     VoidCallback? onTap,
   }) {
     return Column(
@@ -486,10 +504,16 @@ class _PengembalianFormState extends State<PengembalianForm> {
         SizedBox(height: 8),
         TextFormField(
           controller: controller,
-          decoration: _getInputDecoration(label: label, icon: icon),
+          decoration: _getInputDecoration(
+            label: label, 
+            icon: icon,
+            disabled: !enabled,
+          ),
           keyboardType: keyboardType,
           validator: validator,
           readOnly: readOnly,
+          enabled: enabled,
+          style: TextStyle(color: Colors.black),
           onTap: onTap,
         ),
       ],
@@ -599,6 +623,7 @@ class _PengembalianFormState extends State<PengembalianForm> {
     required String label,
     required IconData icon,
     Widget? suffix,
+    bool disabled = false,
   }) {
     return InputDecoration(
       hintText: label,
@@ -612,6 +637,10 @@ class _PengembalianFormState extends State<PengembalianForm> {
         borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
       ),
       enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
+      ),
+      disabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
       ),
@@ -722,6 +751,61 @@ class _PengembalianFormState extends State<PengembalianForm> {
     );
   }
 
+  Widget _buildNoItemsView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.inventory_2_outlined,
+              size: 48,
+              color: Colors.grey[400],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Tidak Ada Barang untuk Dikembalikan',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Semua barang yang dipinjam telah dikembalikan atau belum ada peminjaman yang disetujui',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _loadData,
+            icon: Icon(Icons.refresh),
+            label: Text('Refresh'),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _namaController.dispose();
@@ -731,6 +815,17 @@ class _PengembalianFormState extends State<PengembalianForm> {
     super.dispose();
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

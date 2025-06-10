@@ -16,11 +16,12 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
   final List<String> _statusFilters = ['pending', 'approved', 'rejected', 'returned'];
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadPeminjaman();
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -28,7 +29,7 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
-    _animationController.forward();
+    _loadPeminjaman();
   }
 
   @override
@@ -38,19 +39,40 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
   }
 
   Future<void> _loadPeminjaman() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    if (token == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Token tidak ditemukan. Silakan login kembali.')),
-      );
-      return;
-    }
-
     setState(() {
-      _peminjamanFuture = PeminjamanService.fetchPeminjamanUser(token);
+      _isLoading = true;
+      _errorMessage = null;
     });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        setState(() {
+          _errorMessage = 'Token tidak ditemukan. Silakan login kembali.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      _peminjamanFuture = PeminjamanService.fetchPeminjamanUser(token);
+      
+      // Pre-load the data to catch any errors
+      await _peminjamanFuture;
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
+      _animationController.forward();
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+      print('Error loading peminjaman history: $e');
+    }
   }
 
   List<Peminjaman> _filterPeminjaman(List<Peminjaman> peminjamanList) {
@@ -76,13 +98,13 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
   String _getStatusLabel(String? status) {
     switch (status?.toLowerCase()) {
       case 'pending':
-        return 'MENUNGGU';
+        return 'Pending';
       case 'approved':
-        return 'DISETUJUI';
+        return 'Approved';
       case 'rejected':
-        return 'DITOLAK';
+        return 'Rejected';
       case 'returned':
-        return 'DIKEMBALIKAN';
+        return 'Returned';
       default:
         return 'UNKNOWN';
     }
@@ -91,7 +113,6 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = ColorScheme.fromSeed(seedColor: Colors.blue);
     
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -108,7 +129,6 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
             onPressed: () {
               _animationController.reset();
               _loadPeminjaman();
-              _animationController.forward();
             },
             tooltip: 'Refresh',
           ),
@@ -130,29 +150,7 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
               ],
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.filter_list_rounded,
-                        size: 20,
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Filter Status',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
                 const SizedBox(height: 12),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -199,59 +197,41 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
               onRefresh: () async {
                 _loadPeminjaman();
               },
-              child: FutureBuilder<List<Peminjaman>>(
-                future: _peminjamanFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-                            ),
+              child: _isLoading 
+                ? _buildLoadingView()
+                : _errorMessage != null
+                  ? _buildErrorView(_errorMessage!)
+                  : FutureBuilder<List<Peminjaman>>(
+                      future: _peminjamanFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildLoadingView();
+                        } else if (snapshot.hasError) {
+                          return _buildErrorView(snapshot.error.toString());
+                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return _buildEmptyView();
+                        }
+
+                        final filteredList = _filterPeminjaman(snapshot.data!);
+
+                        if (filteredList.isEmpty) {
+                          return _buildEmptyFilterView();
+                        }
+
+                        return FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            itemCount: filteredList.length,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              final peminjaman = filteredList[index];
+                              return _buildPeminjamanCard(peminjaman, theme);
+                            },
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Memuat data...',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  } else if (snapshot.hasError) {
-                    return _buildErrorView(snapshot.error.toString());
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return _buildEmptyView();
-                  }
-
-                  final filteredList = _filterPeminjaman(snapshot.data!);
-
-                  if (filteredList.isEmpty) {
-                    return _buildEmptyFilterView();
-                  }
-
-                  return FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      itemCount: filteredList.length,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        final peminjaman = filteredList[index];
-                        return _buildPeminjamanCard(peminjaman, theme);
+                        );
                       },
                     ),
-                  );
-                },
-              ),
             ),
           ),
         ],
@@ -612,6 +592,32 @@ class _PeminjamanHistoryPageState extends State<PeminjamanHistoryPage> with Sing
       default:
         return Icons.help_outline;
     }
+  }
+
+  Widget _buildLoadingView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Memuat data...',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

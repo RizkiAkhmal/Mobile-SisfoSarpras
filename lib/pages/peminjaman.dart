@@ -31,6 +31,8 @@ class _PeminjamanFormState extends State<PeminjamanForm> {
   void initState() {
     super.initState();
     _barangFuture = fetchBarang();
+    // Set tanggal pinjam ke hari ini
+    _tglPinjamController.text = _dateFormat.format(DateTime.now());
   }
 
   Future<List<Barang>> fetchBarang() async {
@@ -43,14 +45,17 @@ class _PeminjamanFormState extends State<PeminjamanForm> {
   }
 
   Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      controller.text = _dateFormat.format(picked);
+    // Only allow date selection for return date
+    if (controller != _tglPinjamController) {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime.now(), // Start from today
+        lastDate: DateTime(2100),
+      );
+      if (picked != null) {
+        controller.text = _dateFormat.format(picked);
+      }
     }
   }
 
@@ -248,10 +253,16 @@ class _PeminjamanFormState extends State<PeminjamanForm> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               prefixIcon: Icon(Icons.calendar_today),
-                              suffixIcon: Icon(Icons.arrow_drop_down),
+                              filled: true,
+                              fillColor: Colors.white,
+                              disabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
+                              ),
                             ),
-                            readOnly: true,
-                            onTap: () => _selectDate(context, _tglPinjamController),
+                            readOnly: true, // Make it read-only
+                            enabled: false, // Disable the field completely
+                            style: TextStyle(color: Colors.black), // Keep text color the same
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Tanggal pinjam harus diisi';
